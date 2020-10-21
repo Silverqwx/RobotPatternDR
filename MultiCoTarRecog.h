@@ -11,8 +11,11 @@
 
 #include "LineGenerator.h"
 
+class QWX_MultiCoTarRecog;
+
 class MultiCoTarRecog
 {
+	friend class QWX_MultiCoTarRecog;
 public:
 	MultiCoTarRecog(void);
 public:
