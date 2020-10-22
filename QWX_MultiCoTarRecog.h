@@ -12,7 +12,7 @@ struct featurePt
 
 	bool operator<(const featurePt &another)
 	{
-		return angle < another.angle;
+		return angle > another.angle;
 	}
 };
 
@@ -32,7 +32,7 @@ struct Pattern
 class QWX_MultiCoTarRecog : public MultiCoTarRecog
 {
 	std::map<int, int> mapCode2Type_;//从码值到类型的映射关系
-
+	std::vector<Pattern> patterns_;
 
 public:
 	QWX_MultiCoTarRecog();
@@ -47,6 +47,8 @@ private:
 	bool orderPoints(Pattern &_pattern);
 	bool normalizePattern(Pattern &_pattern);
 	bool recognizePattern(Pattern &_pattern);
+
+	inline bool determCode(unsigned char _p1, unsigned char _p2, int &_code);
 
 };
 #endif // !QWX_MULTICOTARRECOG_H_

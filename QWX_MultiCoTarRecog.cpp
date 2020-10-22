@@ -28,6 +28,8 @@ int QWX_MultiCoTarRecog::GetInfor(cv::Mat Scr)
 	EdgeMap(&Scr, &ImageCanny, 70, 40, 2);
 	TData = new uchar[width*height]();
 	标志个数 = 0;
+	Pattern pattern;
+
 	for (int l = h_start; l < h_end; l++)
 	{
 		ls = l * width;
@@ -165,29 +167,34 @@ int QWX_MultiCoTarRecog::GetInfor(cv::Mat Scr)
 
 
 			//new code
-			Pattern pattern;
 			pattern.centerPt.u = k;
 			pattern.centerPt.v = l;
-			consPattern(pattern);
-			orderPoints(pattern);
-			normalizePattern(pattern);
-			recognizePattern(pattern);
+			if (!consPattern(pattern))
+				continue;
+			if (!orderPoints(pattern))
+				continue;
+			if (!normalizePattern(pattern))
+				continue;
+			if (!recognizePattern(pattern))
+				continue;
+
+			patterns_.push_back(pattern);
 
 			//old code
-			temp = FiveKeyPoints(k, l);
-			if (temp < 0)
-				goto FALSEPOINT;
-			/////////**********************************************************************************/
-			TarPosition[标志个数][0] = k;
-			TarPosition[标志个数][1] = l;
-			TarPosition[标志个数][2] = temp;
-			logo_inf[标志个数][0] = temp;
-			for (int i = 0; i < 8; i++)
-			{
-				logo_inf[标志个数][i + 1] = Result[i];
-			}
-			logo_inf[标志个数][9] = k;
-			logo_inf[标志个数][10] = l;
+			//temp = FiveKeyPoints(k, l);
+			//if (temp < 0)
+			//	goto FALSEPOINT;
+			///////////**********************************************************************************/
+			//TarPosition[标志个数][0] = k;
+			//TarPosition[标志个数][1] = l;
+			//TarPosition[标志个数][2] = temp;
+			//logo_inf[标志个数][0] = temp;
+			//for (int i = 0; i < 8; i++)
+			//{
+			//	logo_inf[标志个数][i + 1] = Result[i];
+			//}
+			//logo_inf[标志个数][9] = k;
+			//logo_inf[标志个数][10] = l;
 			标志个数 = 标志个数 + 1;
 #pragma unroll
 			for (int i = width; i < width11; i = i + width)
@@ -220,12 +227,12 @@ bool QWX_MultiCoTarRecog::consPattern(Pattern & _pattern)
 	_pattern.featurePoints[3].u = End[6];
 	_pattern.featurePoints[3].v = End[7];
 
-
-
-	int peak;//标记点编号
+	//int peak;//标记点编号
 	int OneThree1, OneThree2, OneThree3, OneThree4;
 	int TwoThree1, TwoThree2, TwoThree3, TwoThree4;
-	float angle1, angle2;//用于判断点顺序
+
+	Result[8] = _pattern.centerPt.u;
+	Result[9] = _pattern.centerPt.v;
 
 	////LG->IntersectTwoLine(Lines[12], Lines[13], Lines[14], Lines[15], Lines[16], Lines[17], Result + 8);//线1线3
 	//线1和线2对面不形成顶点，34同样
@@ -239,7 +246,7 @@ bool QWX_MultiCoTarRecog::consPattern(Pattern & _pattern)
 		OneThree2<0 || OneThree2>im_size ||
 		OneThree3<0 || OneThree3>im_size ||
 		OneThree4<0 || OneThree4>im_size)
-		return 0;
+		return false;
 
 	TwoThree1 = width * floor(Result[9] + (End[1] - Result[9]) / 1.5 + 0.5) + floor(Result[8] + (End[0] - Result[8]) / 1.5 + 0.5);//向点1走三分之二
 	TwoThree2 = width * floor(Result[9] + (End[3] - Result[9]) / 1.5 + 0.5) + floor(Result[8] + (End[2] - Result[8]) / 1.5 + 0.5);//向点2走三分之二
@@ -249,22 +256,95 @@ bool QWX_MultiCoTarRecog::consPattern(Pattern & _pattern)
 		TwoThree2<0 || TwoThree2>im_size ||
 		TwoThree3<0 || TwoThree3>im_size ||
 		TwoThree4<0 || TwoThree4>im_size)
-		return 0;
+		return false;
+
+	_pattern.featurePoints[0].markValue = SData[TwoThree1];
+	_pattern.featurePoints[1].markValue = SData[TwoThree2];
+	_pattern.featurePoints[2].markValue = SData[TwoThree3];
+	_pattern.featurePoints[3].markValue = SData[TwoThree4];
+
+	determCode(SData[OneThree1], SData[TwoThree1], _pattern.featurePoints[0].code);
+	determCode(SData[OneThree2], SData[TwoThree2], _pattern.featurePoints[1].code);
+	determCode(SData[OneThree3], SData[TwoThree3], _pattern.featurePoints[2].code);
+	determCode(SData[OneThree4], SData[TwoThree4], _pattern.featurePoints[3].code);
+
+	_pattern.featurePoints[0].angle = LG->OriofTwoPoints(_pattern.centerPt.u, _pattern.centerPt.v, _pattern.featurePoints[0].u, _pattern.featurePoints[0].v);
+	_pattern.featurePoints[1].angle = LG->OriofTwoPoints(_pattern.centerPt.u, _pattern.centerPt.v, _pattern.featurePoints[1].u, _pattern.featurePoints[1].v);
+	_pattern.featurePoints[2].angle = LG->OriofTwoPoints(_pattern.centerPt.u, _pattern.centerPt.v, _pattern.featurePoints[2].u, _pattern.featurePoints[2].v);
+	_pattern.featurePoints[3].angle = LG->OriofTwoPoints(_pattern.centerPt.u, _pattern.centerPt.v, _pattern.featurePoints[3].u, _pattern.featurePoints[3].v);
 
 	return true;
 }
 
 bool QWX_MultiCoTarRecog::orderPoints(Pattern & _pattern)
 {
+	std::sort(_pattern.featurePoints.begin(), _pattern.featurePoints.end());
+
 	return true;
 }
 
 bool QWX_MultiCoTarRecog::normalizePattern(Pattern & _pattern)
 {
+	int normalCode = 99999;
+	int fstIdx = -1;
+	for (size_t fst = 0; fst < 4; fst++)
+	{
+		int tempCode = 0;
+		for (size_t num = 0; num < 4; num++)
+		{
+			int idx = (fst + num) % 4;
+			tempCode += _pattern.featurePoints[idx].code*pow(4, 3 - num);
+		}
+
+		if (normalCode < tempCode)
+			continue;
+
+		normalCode = tempCode;
+		fstIdx = fst;
+	}
+
+	std::vector<featurePt> tempFeaturePts = _pattern.featurePoints;
+
+	int tempFstIdx = fstIdx;
+	for (size_t i = 0; i < _pattern.featurePoints.size(); i++)
+	{
+		_pattern.featurePoints[i] = tempFeaturePts[tempFstIdx];
+		tempFstIdx++;
+		tempFstIdx %= _pattern.featurePoints.size();
+	}
+
+	_pattern.PatternCode = normalCode;
+
 	return true;
 }
 
 bool QWX_MultiCoTarRecog::recognizePattern(Pattern & _pattern)
 {
+	std::map<int, int>::iterator iter = mapCode2Type_.find(_pattern.PatternCode);
+	if (iter == mapCode2Type_.end())
+	{
+		_pattern.patternType = -1;
+
+		return false;
+	}
+
+	_pattern.patternType = iter->second;
+
+	return true;
+}
+
+inline bool QWX_MultiCoTarRecog::determCode(unsigned char _p1, unsigned char _p2, int & _code)
+{
+	if (_p1 - _p2 > 35)
+	{
+		_code = -1;
+	}
+	else if (_p1 - _p2 < -35)
+	{
+		_code = 1;
+	}
+	else
+		_code = 0;
+
 	return true;
 }
