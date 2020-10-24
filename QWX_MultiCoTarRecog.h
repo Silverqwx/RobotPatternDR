@@ -3,34 +3,37 @@
 
 #include "MultiCoTarRecog.h"
 
-struct featurePt
-{
-	double u, v;
-	unsigned char markValue;
-	double angle;
-	int code;
-
-	bool operator<(const featurePt &another)
-	{
-		return angle > another.angle;
-	}
-};
-
-struct CenterPt
-{
-	double u, v;
-};
-
-struct Pattern
-{
-	std::vector<featurePt> featurePoints;
-	CenterPt centerPt;
-	int PatternCode;
-	int patternType;
-};
-
 class QWX_MultiCoTarRecog : public MultiCoTarRecog
 {
+public:
+	struct featurePt
+	{
+		double u, v;
+		unsigned char markValue;
+		double angle;
+		int code;
+
+		bool operator<(const featurePt &another)
+		{
+			return angle > another.angle;
+		}
+	};
+
+	struct CenterPt
+	{
+		double u, v;
+	};
+
+	struct Pattern
+	{
+		std::vector<featurePt> featurePoints;
+		CenterPt centerPt;
+		int PatternCode;
+		int patternType;
+	};
+
+private:
+
 	std::map<int, int> mapCode2Type_;//从码值到类型的映射关系
 	std::vector<Pattern> patterns_;
 
@@ -41,6 +44,7 @@ public:
 	bool setMapCode2Type(const std::map<int, int> &_mapCode2Type);
 
 	virtual int GetInfor(cv::Mat Scr);
+	std::vector<Pattern> getPatterns() const;
 
 private:
 	bool consPattern(Pattern &_pattern);

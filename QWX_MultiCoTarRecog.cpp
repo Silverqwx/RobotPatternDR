@@ -215,6 +215,11 @@ int QWX_MultiCoTarRecog::GetInfor(cv::Mat Scr)
 	return 标志个数;
 }
 
+std::vector<QWX_MultiCoTarRecog::Pattern> QWX_MultiCoTarRecog::getPatterns() const
+{
+	return patterns_;
+}
+
 bool QWX_MultiCoTarRecog::consPattern(Pattern & _pattern)
 {
 	_pattern.featurePoints.resize(4);
