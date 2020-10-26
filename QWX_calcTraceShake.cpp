@@ -48,9 +48,9 @@ bool QWX_calcTraceShake::compute(const std::vector<QWX_CalcPatternT::Pattern>& _
 		markPt4d.at<float>(1, 0) = markPt.y;
 		markPt4d.at<float>(3, 0) = 1.0;
 
-		trace[patternIdx] = p.T_m2g*markPt4d;
+		trace[patternIdx] = p.T_*markPt4d;
 
-		cv::Mat T_g2m = p.T_m2g.inv();
+		cv::Mat T_g2m = p.T_.inv();
 		const cv::Mat &origin_T_g2m = origin_T_g2ms[patternIdx];
 
 		cv::Mat v14d = T_g2m * v;

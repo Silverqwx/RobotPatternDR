@@ -22,15 +22,15 @@ bool QWX_CalcPatternT::setObjectPoints(const std::vector<cv::Point3f>& _objectPo
 	return true;
 }
 
-bool QWX_CalcPatternT::compute(std::vector<Pattern>& _patterns, const std::vector<cv::Mat>& _inputImages, const std::vector<camParam> &_camParams)
+bool QWX_CalcPatternT::compute(std::vector<Pattern>& _patterns, const std::vector<cv::Mat>& _inputImages, const std::vector<camParam> &_camParams, const std::vector<int> &times)
 {
 	if (_inputImages.size() != _camParams.size())
 		return false;
 
 
-
 	std::vector<cv::Mat> images;
 
+	patternsInImages.clear();
 	patternsInImages.resize(_inputImages.size());
 
 	for (size_t i = 0; i < _inputImages.size(); i++)
@@ -59,6 +59,8 @@ bool QWX_CalcPatternT::compute(std::vector<Pattern>& _patterns, const std::vecto
 			Pattern p(patterns_noT[patternIdx]);
 			if (!calcT(p, tempCamParam))
 				continue;
+			if(times.size()!=0)
+				p.time=times[imgIdx];
 			patternsInImages[imgIdx].push_back(p);
 		}
 
@@ -88,6 +90,11 @@ std::vector<QWX_CalcPatternT::Pattern> QWX_CalcPatternT::getPatterns() const
 	return outPatterns;
 }
 
+std::vector<std::vector<QWX_CalcPatternT::Pattern>> QWX_CalcPatternT::getPatternsInImages() const
+{
+	return patternsInImages;
+}
+
 bool QWX_CalcPatternT::clear()
 {
 	patternsInImages.clear();
@@ -97,7 +104,8 @@ bool QWX_CalcPatternT::clear()
 
 bool QWX_CalcPatternT::calcT(Pattern & _p, const camParam & _camParam)
 {
-	std::vector<cv::Point2f> point2ds;
+	_p.T_ = cv::Mat::eye(4, 4, CV_32FC1);
+	/*std::vector<cv::Point2f> point2ds;
 	for (size_t ptIdx = 0; ptIdx < _p.RgPattern_.featurePoints.size(); ptIdx++)
 	{
 		point2ds.push_back(cv::Point2f(_p.RgPattern_.featurePoints[ptIdx].u, _p.RgPattern_.featurePoints[ptIdx].v));
@@ -113,7 +121,7 @@ bool QWX_CalcPatternT::calcT(Pattern & _p, const camParam & _camParam)
 
 	T_m2c.convertTo(T_m2c, CV_32FC1);
 
-	_p.T_m2g = _camParam.T_c2g*T_m2c;
+	_p.T_ = _camParam.T_c2w*T_m2c;*/
 
 	return true;
 }

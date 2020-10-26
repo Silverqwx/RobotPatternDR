@@ -18,6 +18,8 @@ bool QWX_MultiCoTarRecog::setMapCode2Type(const std::map<int, int>& _mapCode2Typ
 
 int QWX_MultiCoTarRecog::GetInfor(cv::Mat Scr)
 {
+	patterns_.clear();
+
 	int we, he;//扫描结束的位置
 	int ls, lr, k3, imp;//简化计算
 	int temp, temp1, temp2, temp3, temp4;
