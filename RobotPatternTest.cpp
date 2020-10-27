@@ -23,7 +23,7 @@ int main()
 		std::vector<int> subTimes;
 		for (size_t j = 0; j < 1; j++)
 		{
-			cv::Mat patternImage = cv::imread("Image_1.bmp", 0);
+			cv::Mat patternImage = cv::imread("Image_4.bmp", 0);
 			subImages.push_back(patternImage);
 			subTimes.push_back(j);
 		}
@@ -121,7 +121,7 @@ int main()
 		pointsInBoards.push_back(points);
 	}
 	std::vector<std::vector<cv::Point3f>> pointsInMarkers;
-	for (size_t i = 0; i < 1; i++)
+	for (size_t i = 0; i < 2; i++)
 	{
 		pointsInMarkers.push_back(points);
 	}
@@ -151,13 +151,14 @@ int main()
 	me.setTw2gOrigin(T_w2g_origin);
 	me.setPointsInBoards(pointsInBoards);
 	me.setPointsInMarkers(pointsInMarkers);
+	me.setBoardNum(0);
 	me.init();
 	me.initTg2mnOrigin(Images[0]);
 	for (size_t i = 0; i < Images.size(); i++)
 	{
 		me.addImages(Images[i], times[i]);
 	}
-
+	me.process();
 
 
 

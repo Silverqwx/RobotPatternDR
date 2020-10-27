@@ -163,6 +163,11 @@ bool QWX_MotionEstimation::initTg2mnOrigin(const std::vector<cv::Mat>& _inputIma
 	T_bn2w_origin = tempT_bn2w_origin;
 	T_w2mn_origin = tempT_w2mn_origin;
 
+	/*测试*/
+	cv::Mat p1 = T_w2mn_origin[0].inv()(cv::Rect(3, 0, 1, 3)),
+		p2 = T_w2mn_origin[1].inv()(cv::Rect(3, 0, 1, 3));
+	float distance = cv::norm(p1, p2, CV_L2);
+
 	return true;
 }
 
@@ -171,7 +176,7 @@ bool QWX_MotionEstimation::addImages(const std::vector<cv::Mat>& _inputImages, c
 	std::vector<QWX_CalcPatternT::Pattern> cptPatterns;
 	cpt.compute(cptPatterns, _inputImages, camParams_T_cn2w_origin, times);
 	std::vector<std::vector<QWX_CalcPatternT::Pattern>> patternsInImages = cpt.getPatternsInImages();
-	patternsInCamsInOrder_T_mb2w.push_back(patternsInImages);
+	patternsInCamsInOrder_T_mb2wp.push_back(patternsInImages);
 
 	return true;
 }
@@ -186,9 +191,9 @@ bool QWX_MotionEstimation::process()
 
 bool QWX_MotionEstimation::calcT()
 {
-	for (size_t orderIdx = 0; orderIdx < patternsInCamsInOrder_T_mb2w.size(); orderIdx++)
+	for (size_t orderIdx = 0; orderIdx < patternsInCamsInOrder_T_mb2wp.size(); orderIdx++)
 	{
-		std::vector<std::vector<QWX_CalcPatternT::Pattern>> &patternsInCams = patternsInCamsInOrder_T_mb2w[orderIdx];
+		std::vector<std::vector<QWX_CalcPatternT::Pattern>> &patternsInCams = patternsInCamsInOrder_T_mb2wp[orderIdx];
 		for (size_t camIdx = 0; camIdx < patternsInCams.size(); camIdx++)
 		{
 			std::vector<QWX_CalcPatternT::Pattern> &patterns = patternsInCams[camIdx];
@@ -210,7 +215,7 @@ bool QWX_MotionEstimation::calcT()
 				}
 				else
 				{
-					point3fs = pointsInMarkers[pattern.RgPattern_.patternType];
+					point3fs = pointsInMarkers[pattern.RgPattern_.patternType - 1];
 				}
 
 				cv::Mat rVec, tVec;
@@ -235,13 +240,63 @@ bool QWX_MotionEstimation::calcT()
 	return true;
 }
 
+bool QWX_MotionEstimation::dataFusion()
+{
+	for (size_t orderIdx = 0; orderIdx < patternsInCamsInOrder_T_mb2wp.size(); orderIdx++)
+	{
+		std::vector<std::vector<QWX_CalcPatternT::Pattern>> &patternsInCams = patternsInCamsInOrder_T_mb2wp[orderIdx];
+		std::vector<std::vector<QWX_CalcPatternT::Pattern>> patternsInMBs(pointsInMarkers.size());
+		std::vector<cv::Mat> T_wp2w_sum;
+		std::vector<std::vector<cv::Mat>> markersT_mn2wp_sum(pointsInMarkers.size());
+		//for (size_t markerIdx = 0; markerIdx < pointsInMarkers.size(); markerIdx++)
+		//	markersT_mn2wp_sum.push_back(std::vector<cv::Mat()>());
+		cv::Mat T_wp2w;
+		std::vector<cv::Mat> markersT_mn2wp;
+		for (size_t markerIdx = 0; markerIdx < pointsInMarkers.size(); markerIdx++)
+			markersT_mn2wp.push_back(cv::Mat());
+
+		for (size_t camIdx = 0; camIdx < patternsInCams.size(); camIdx++)
+		{
+			std::vector<QWX_CalcPatternT::Pattern> &patterns = patternsInCams[camIdx];
+			for (size_t patternIdx = 0; patternIdx < patterns.size(); patternIdx++)
+			{
+				QWX_CalcPatternT::Pattern &pattern = patterns[patternIdx];
+				if (pattern.RgPattern_.patternType == 7)
+				{
+					cv::Mat tempT_wp2w = T_bn2w_origin[camIdx] * pattern.T_.inv();
+					T_wp2w_sum.push_back(tempT_wp2w);
+				}
+				else
+				{
+					patternsInMBs[pattern.RgPattern_.patternType - 1].push_back(pattern);
+					markersT_mn2wp_sum[pattern.RgPattern_.patternType - 1].push_back(pattern.T_.clone());
+				}
+			}
+		}
+		T_wp2w = TFusion(T_wp2w_sum);
+		for (size_t markerIdx = 0; markerIdx < markersT_mn2wp_sum.size(); markerIdx++)
+			markersT_mn2wp[markerIdx] = TFusion(markersT_mn2wp_sum[markerIdx]);
+
+		TInOrder_wp2w.push_back(T_wp2w);
+
+		for (size_t markerIdx = 0; markerIdx < markersT_mn2wp.size(); markerIdx++)
+		{
+			markersT_mn2wp[markerIdx] = T_w2g_origin * T_wp2w*markersT_mn2wp[markerIdx];//转化为从m到g的转移位姿
+		}
+
+		markersTInOrder_m2g.push_back(markersT_mn2wp);
+	}
+
+	return true;
+}
+
 bool QWX_MotionEstimation::calcTraceShake()//有点问题，暂时测试，等改
 {
 	cts.setOringin_T_g2ms(T_w2mn_origin);
 	cts.setMarkPt(cv::Point2f(5.0, 5.0));
-	for (size_t orderIdx = 0; orderIdx < patternsInCamsInOrder_T_mb2w.size(); orderIdx++)
+	for (size_t orderIdx = 0; orderIdx < patternsInCamsInOrder_T_mb2wp.size(); orderIdx++)
 	{
-		std::vector<std::vector<QWX_CalcPatternT::Pattern>> &patternsInCams = patternsInCamsInOrder_T_mb2w[orderIdx];
+		std::vector<std::vector<QWX_CalcPatternT::Pattern>> &patternsInCams = patternsInCamsInOrder_T_mb2wp[orderIdx];
 		cts.compute(patternsInCams[0]);
 	}
 	traceInCamsInOrder.push_back(cts.getTrace());
@@ -249,3 +304,31 @@ bool QWX_MotionEstimation::calcTraceShake()//有点问题，暂时测试，等改
 
 	return true;
 }
+
+inline cv::Mat QWX_MotionEstimation::TFusion(const std::vector<cv::Mat>& Ts)
+{
+	cv::Mat rstT = cv::Mat::eye(4, 4, CV_32FC1);
+	cv::Mat rVec = cv::Mat::zeros(3, 1, CV_32FC1),
+		tVec = cv::Mat::zeros(3, 1, CV_32FC1);
+	std::vector<cv::Mat> rVecs(Ts.size()),
+		tVecs(Ts.size());
+
+	for (size_t TIdx = 0; TIdx < Ts.size(); TIdx++)
+	{
+		cv::Rodrigues(Ts[TIdx](cv::Rect(0, 0, 3, 3)), rVecs[TIdx]);
+		Ts[TIdx](cv::Rect(3, 0, 1, 3)).copyTo(tVecs[TIdx]);
+	}
+	for (size_t TIdx = 0; TIdx < Ts.size(); TIdx++)
+	{
+		rVec += rVecs[TIdx];
+		tVec += tVecs[TIdx];
+	}
+	rVec = rVec / Ts.size();
+	tVec = tVec / Ts.size();
+
+	cv::Rodrigues(rVec, rstT(cv::Rect(0, 0, 3, 3)));
+	tVec.copyTo(rstT(cv::Rect(3, 0, 1, 3)));
+
+	return rstT;
+}
+

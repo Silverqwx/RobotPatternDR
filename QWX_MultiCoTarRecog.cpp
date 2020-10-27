@@ -310,6 +310,20 @@ bool QWX_MultiCoTarRecog::normalizePattern(Pattern & _pattern)
 		fstIdx = fst;
 	}
 
+	//把无标记作为标定板
+	if (normalCode == 0)
+	{
+		int tempSum = 999999;
+		for (size_t fst = 0; fst < _pattern.featurePoints.size(); fst++)
+		{
+			int sum = _pattern.featurePoints[fst].u + _pattern.featurePoints[fst].v;
+			if (sum > tempSum)
+				continue;
+			tempSum = sum;
+			fstIdx = fst;
+		}
+	}
+
 	std::vector<featurePt> tempFeaturePts = _pattern.featurePoints;
 
 	int tempFstIdx = fstIdx;
