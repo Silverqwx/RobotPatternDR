@@ -21,8 +21,8 @@ class QWX_MotionEstimation
 	std::vector<std::vector<cv::Mat>> markersTInOrder_m2g;//标志的位姿，到地面坐标系
 	std::vector<cv::Mat> TInOrder_wp2w;//w'到w的转移矩阵   
 
-	std::vector<std::vector<cv::Mat>> traceInCamsInOrder;
-	std::vector < std::vector<float>> shakeInCamsInOrder;
+	std::vector<std::vector<cv::Point3f>> traceInCamsInOrder;
+	std::vector<std::vector<float>> shakeInCamsInOrder;
 
 public:
 	QWX_MotionEstimation();
@@ -41,6 +41,9 @@ public:
 	bool initTg2mnOrigin(const std::vector<cv::Mat> &_inputImages);
 	bool addImages(const std::vector<cv::Mat> &_inputImages, const std::vector<int> &times);
 	bool process();
+
+	std::vector<std::vector<cv::Point3f>> getTraceInCamsInOrder() const;
+	std::vector < std::vector<float>> getShakeInCamsInOrder() const;
 
 
 private:

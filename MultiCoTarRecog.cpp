@@ -330,7 +330,7 @@ int MultiCoTarRecog::GetInfor(cv::Mat Scr)
 
 
 			/////////**********************************************************************************/
-			if (!GetLines(CenterPoint, CrossLine))
+			if (!GetLines(CenterPoint, CrossLine, 700))
 				goto FALSEPOINT;
 			temp = FiveKeyPoints(k, l);
 			if (temp < 0)
@@ -365,52 +365,75 @@ int MultiCoTarRecog::GetInfor(cv::Mat Scr)
 	delete[] TData;
 	return ±êÖ¾¸öÊý;
 }
-bool MultiCoTarRecog::GetLines(cv::Point2d Center, double* CrossLine)//»­³ö¾ØÐÎµÄ4Ìõ±ß£¬²¢°´ÕÕË³Ê±ÕëË³Ðò£¬´Ó±ê¼Çµã¿ªÊ¼Êä³öËÄ¸ö¶¥µãµÄÍ¼Ïñ×ø±ê
+bool MultiCoTarRecog::GetLines(cv::Point2d Center, double* CrossLine, int line_length)//»­³ö¾ØÐÎµÄ4Ìõ±ß£¬²¢°´ÕÕË³Ê±ÕëË³Ðò£¬´Ó±ê¼Çµã¿ªÊ¼Êä³öËÄ¸ö¶¥µãµÄÍ¼Ïñ×ø±ê
 {
 	cv::Point2i centerpixel = Center;
 	float length1, length2, length3, length4;
-	float Points[200];//ÖÐÐÄ½»²æÏßÏßÍ·ÕÒµ½µÄ40¸öµã
+	////////float Points[200];//ÖÐÐÄ½»²æÏßÏßÍ·ÕÒµ½µÄ40¸öµã
+	float* Points = new float[line_length]();//ÖÐÐÄ½»²æÏßÏßÍ·ÕÒµ½µÄ40¸öµã
 	////float CrossEdgePoints[2400];//ÖÐÐÄÏß¾­¹ýµÄµã
 	int CrossLength;
-	int PLine1[200], PLine2[200];
-	int VLine[200];
-	LG->RayLineFunction(CrossLine[0], CrossLine[1], 50, PLine1);//Éú³ÉÇ°½øËÑË÷Ä£°å,CrossLineÊÇÓÉ»ô·ò±ä»»µÃµ½µÄÖÐÐÄÏß·½³Ì
-	LG->RayLineFunction(CrossLine[3], CrossLine[4], 50, PLine2);//Éú³É´¹Ö±Ä£°å
+	int line_length43 = line_length * 3 / 4;
+	int line_length_point_num = line_length / 4;
+	//////int PLine1[200], PLine2[200];
+	//////int VLine[200];
+	int* PLine1 = new int[line_length]();//ÖÐÐÄ½»²æÏßÏßÍ·ÕÒµ½µÄ40¸öµã
+	int* PLine2 = new int[line_length]();//ÖÐÐÄ½»²æÏßÏßÍ·ÕÒµ½µÄ40¸öµã
+	int* VLine = new int[line_length]();//ÖÐÐÄ½»²æÏßÏßÍ·ÕÒµ½µÄ40¸öµã
+
+	LG->RayLineFunction(CrossLine[0], CrossLine[1], line_length_point_num, PLine1);//Éú³ÉÇ°½øËÑË÷Ä£°å,CrossLineÊÇÓÉ»ô·ò±ä»»µÃµ½µÄÖÐÐÄÏß·½³Ì
+	LG->RayLineFunction(CrossLine[3], CrossLine[4], line_length_point_num, PLine2);//Éú³É´¹Ö±Ä£°å
 	////LG->ParSegmentF(50,CrossLine[3], CrossLine[4], VLine);//Éú³É´¹Ö±Ä£°å
 	int temp_crosslength;
-	memcpy(VLine, PLine2, 150 * sizeof(int));
+	memcpy(VLine, PLine2, line_length43 * sizeof(int));
 	CrossLength = ALongCross(centerpixel, PLine1, VLine, Points, crosslength);
 	if (CrossLength <= 0)
 	{
 		crosslength = height / 2;
+		delete[]PLine1;
+		delete[]PLine2;
+		delete[]VLine;
+		delete[]Points;
 		return false;
 	}
 	temp_crosslength = max(CrossLength, 0);
-	LG->ArryMinus(150, PLine1);
+	LG->ArryMinus(line_length43, PLine1);
 
 	CrossLength = ALongCross(centerpixel, PLine1, VLine, Points + 20, crosslength);
 	if (CrossLength <= 0)
 	{
 		crosslength = height / 2;
+		delete[]PLine1;
+		delete[]PLine2;
+		delete[]VLine;
+		delete[]Points;
 		return false;
 	}
 	temp_crosslength = max(CrossLength, temp_crosslength);
 
-	memcpy(VLine, PLine1, 150 * sizeof(int));
+	memcpy(VLine, PLine1, line_length43 * sizeof(int));
 	CrossLength = ALongCross(centerpixel, PLine2, VLine, Points + 40, crosslength);
 	if (CrossLength <= 0)
 	{
 		crosslength = height / 2;
+		delete[]PLine1;
+		delete[]PLine2;
+		delete[]VLine;
+		delete[]Points;
 		return false;
 	}
 	temp_crosslength = max(CrossLength, temp_crosslength);
 
-	LG->ArryMinus(150, PLine2);
+	LG->ArryMinus(line_length43, PLine2);
 
 	CrossLength = ALongCross(centerpixel, PLine2, VLine, Points + 60, crosslength);
 	if (CrossLength <= 0)
 	{
 		crosslength = height / 2;
+		delete[]PLine1;
+		delete[]PLine2;
+		delete[]VLine;
+		delete[]Points;
 		return false;
 	}
 	temp_crosslength = max(CrossLength, temp_crosslength);
@@ -422,20 +445,20 @@ bool MultiCoTarRecog::GetLines(cv::Point2d Center, double* CrossLine)//»­³ö¾ØÐÎµ
 	////////////////LG->FitLine(CrossEdgePoints, (CrossLength1 + CrossLength2) / 2, Lines + 12);//Ïß5,ÖÐÑë½»²æÏß1
 	////////////////LG->FitLine(CrossEdgePoints + CrossLength1 + CrossLength2, (CrossLength3 + CrossLength4) / 2, Lines + 15);//Ïß6,ÖÐÑë½»²æÏß2
 	////////
-	LG->RelTwoEnds(Points[8], Points[9], Points[18], Points[19], 50, PLine1);
-	LG->RelTwoEnds((Points[0] + Points[10]) / 2, (Points[1] + Points[11]) / 2, centerpixel.x, centerpixel.y, 50, VLine);
+	LG->RelTwoEnds(Points[8], Points[9], Points[18], Points[19], line_length_point_num, PLine1);
+	LG->RelTwoEnds((Points[0] + Points[10]) / 2, (Points[1] + Points[11]) / 2, centerpixel.x, centerpixel.y, line_length_point_num, VLine);
 	PreciseLine(Points[0], Points[1], PLine1, VLine, Lines, centerpixel);
 
-	LG->RelTwoEnds(Points[28], Points[29], Points[38], Points[39], 50, PLine1);
-	LG->RelTwoEnds((Points[20] + Points[30]) / 2, (Points[21] + Points[31]) / 2, centerpixel.x, centerpixel.y, 50, VLine);
+	LG->RelTwoEnds(Points[28], Points[29], Points[38], Points[39], line_length_point_num, PLine1);
+	LG->RelTwoEnds((Points[20] + Points[30]) / 2, (Points[21] + Points[31]) / 2, centerpixel.x, centerpixel.y, line_length_point_num, VLine);
 	PreciseLine(Points[20], Points[21], PLine1, VLine, Lines + 3, centerpixel);
 
-	LG->RelTwoEnds(Points[48], Points[49], Points[58], Points[59], 50, PLine1);
-	LG->RelTwoEnds((Points[40] + Points[50]) / 2, (Points[41] + Points[51]) / 2, centerpixel.x, centerpixel.y, 50, VLine);
+	LG->RelTwoEnds(Points[48], Points[49], Points[58], Points[59], line_length_point_num, PLine1);
+	LG->RelTwoEnds((Points[40] + Points[50]) / 2, (Points[41] + Points[51]) / 2, centerpixel.x, centerpixel.y, line_length_point_num, VLine);
 	PreciseLine(Points[40], Points[41], PLine1, VLine, Lines + 6, centerpixel);
 
-	LG->RelTwoEnds(Points[68], Points[69], Points[78], Points[79], 50, PLine1);
-	LG->RelTwoEnds((Points[60] + Points[70]) / 2, (Points[61] + Points[71]) / 2, centerpixel.x, centerpixel.y, 50, VLine);
+	LG->RelTwoEnds(Points[68], Points[69], Points[78], Points[79], line_length_point_num, PLine1);
+	LG->RelTwoEnds((Points[60] + Points[70]) / 2, (Points[61] + Points[71]) / 2, centerpixel.x, centerpixel.y, line_length_point_num, VLine);
 	PreciseLine(Points[60], Points[61], PLine1, VLine, Lines + 9, centerpixel);
 
 	LG->IntersectTwoLine(Lines[0], Lines[1], Lines[2], Lines[6], Lines[7], Lines[8], End[0], End[1]);//Ïß1Ïß3
@@ -453,7 +476,17 @@ bool MultiCoTarRecog::GetLines(cv::Point2d Center, double* CrossLine)//»­³ö¾ØÐÎµ
 		|| length1 / length4 > 3 || length4 / length1 > 3
 		|| length2 / length3 > 3 || length3 / length2 > 3
 		|| length2 / length4 > 3 || length4 / length2 > 3)
+	{
+		delete[]PLine1;
+		delete[]PLine2;
+		delete[]VLine;
+		delete[]Points;
 		return false;
+	}
+	delete[]PLine1;
+	delete[]PLine2;
+	delete[]VLine;
+	delete[]Points;
 	return true;
 }
 bool MultiCoTarRecog::PreciseLine(int ustart, int vstart, int* ForLine, int* LaLine, double* line, cv::Point2i Center)
@@ -841,7 +874,7 @@ int MultiCoTarRecog::ALongCross(cv::Point2i Center, int* PLine, int*VLine, float
 	int to_white = 0;
 	bool got_new_end = false;
 NEW_END:
-	for (int i = 2; i < 32; i = i + 3)
+	for (int i = 2; i < 65; i = i + 3)
 	{
 		temp = SData[impbs + PLine[i + 6]] - SData[impbs + PLine[i]];
 		if (temp > 35 && temp > SData[impbs + PLine[i + 9]] - SData[impbs + PLine[i + 3]])

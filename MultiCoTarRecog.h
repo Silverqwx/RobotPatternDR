@@ -56,7 +56,7 @@ public:
 private://目标测量相关函数
 	int NLines, NLines1, NLines2;
 
-	bool GetLines(cv::Point2d Center, double* CrossLine);//画出矩形的4条边，并按照顺时针顺序，从标记点开始输出四个顶点的图像坐标
+	bool GetLines(cv::Point2d Center, double* CrossLine, int line_length = 200);//画出矩形的4条边，并按照顺时针顺序，从标记点开始输出四个顶点的图像坐标
 	virtual int FiveKeyPoints(int u_center, int v_center);//根据提取到的直线和右手定则确定矩形四个顶点和标志中心点的图像坐标和顺序，其中标志中心点为第五个点
 	int ALongCross(cv::Point2i Center, int* PLine, int*VLine, float*SavePoints, int maxsteps);//第一个存储位置存搜索头处找到边缘点，第二个存储位置存找到的交叉线边缘点
 	bool PreciseLine(int ustart, int vstart, int* ForLine, int* LaLine, double* line, cv::Point2i Center);//起始点、前进线、侧向搜索线、存储地址、标记中点坐标

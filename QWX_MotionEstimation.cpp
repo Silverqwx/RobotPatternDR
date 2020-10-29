@@ -98,9 +98,12 @@ bool QWX_MotionEstimation::initTg2mnOrigin(const std::vector<cv::Mat>& _inputIma
 		{
 			QWX_CalcPatternT::Pattern &pattern = patterns[patternIdx];
 
-			if (pattern.RgPattern_.patternType == 7 && tempT_bn2w_origin[camIdx].rows != 0)
-				continue;
-			if (tempT_w2mn_origin[pattern.RgPattern_.patternType - 1].rows != 0)
+			if (pattern.RgPattern_.patternType == 7)
+			{
+				if (tempT_bn2w_origin[camIdx].rows != 0)
+					continue;
+			}
+			else if (tempT_w2mn_origin[pattern.RgPattern_.patternType - 1].rows != 0)
 				continue;
 
 			const cv::Mat &camK = camParams_T_cn2w_origin[camIdx].camK;
@@ -164,9 +167,9 @@ bool QWX_MotionEstimation::initTg2mnOrigin(const std::vector<cv::Mat>& _inputIma
 	T_w2mn_origin = tempT_w2mn_origin;
 
 	/*测试*/
-	cv::Mat p1 = T_w2mn_origin[0].inv()(cv::Rect(3, 0, 1, 3)),
+	/*cv::Mat p1 = T_w2mn_origin[0].inv()(cv::Rect(3, 0, 1, 3)),
 		p2 = T_w2mn_origin[1].inv()(cv::Rect(3, 0, 1, 3));
-	float distance = cv::norm(p1, p2, CV_L2);
+	float distance = cv::norm(p1, p2, CV_L2);*/
 
 	return true;
 }
@@ -184,9 +187,20 @@ bool QWX_MotionEstimation::addImages(const std::vector<cv::Mat>& _inputImages, c
 bool QWX_MotionEstimation::process()
 {
 	calcT();
-
+	dataFusion();
+	calcTraceShake();
 
 	return true;
+}
+
+std::vector<std::vector<cv::Point3f>> QWX_MotionEstimation::getTraceInCamsInOrder() const
+{
+	return traceInCamsInOrder;
+}
+
+std::vector<std::vector<float>> QWX_MotionEstimation::getShakeInCamsInOrder() const
+{
+	return shakeInCamsInOrder;
 }
 
 bool QWX_MotionEstimation::calcT()
@@ -293,14 +307,15 @@ bool QWX_MotionEstimation::dataFusion()
 bool QWX_MotionEstimation::calcTraceShake()//有点问题，暂时测试，等改
 {
 	cts.setOringin_T_g2ms(T_w2mn_origin);
-	cts.setMarkPt(cv::Point2f(5.0, 5.0));
-	for (size_t orderIdx = 0; orderIdx < patternsInCamsInOrder_T_mb2wp.size(); orderIdx++)
+	//cts.setMarkPt(cv::Point2f(0.0, 0.0));
+	for (size_t orderIdx = 0; orderIdx < markersTInOrder_m2g.size(); orderIdx++)
 	{
-		std::vector<std::vector<QWX_CalcPatternT::Pattern>> &patternsInCams = patternsInCamsInOrder_T_mb2wp[orderIdx];
-		cts.compute(patternsInCams[0]);
+		std::vector<cv::Mat> &Ts_mn2g = markersTInOrder_m2g[orderIdx];
+		cts.compute(Ts_mn2g);
+		traceInCamsInOrder.push_back(cts.getTrace());
+		shakeInCamsInOrder.push_back(cts.getShake());
 	}
-	traceInCamsInOrder.push_back(cts.getTrace());
-	shakeInCamsInOrder.push_back(cts.getShake());
+
 
 	return true;
 }

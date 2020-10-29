@@ -14,16 +14,21 @@ void readxml(const std::string &filename, cv::Mat &camK, cv::Mat &camDistCoeffs)
 
 int main()
 {
+	//参数
+	int markerNum = 1;
+	int boardNum = 1;
 	//数据准备
 	std::vector<std::vector<cv::Mat>> Images;
 	std::vector<std::vector<int>> times;
-	for (size_t i = 0; i < 5; i++)
+	for (size_t i = 0; i < 2; i++)
 	{
+		std::stringstream ss;
+		ss << i + 1;
 		std::vector<cv::Mat> subImages;
 		std::vector<int> subTimes;
 		for (size_t j = 0; j < 1; j++)
 		{
-			cv::Mat patternImage = cv::imread("Image_4.bmp", 0);
+			cv::Mat patternImage = cv::imread("Image_" + ss.str() + ".bmp", 0);
 			subImages.push_back(patternImage);
 			subTimes.push_back(j);
 		}
@@ -53,32 +58,40 @@ int main()
 		origin_T_g2ms.push_back(cv::Mat::eye(4, 4, CV_32FC1));
 	}
 
-	std::vector<cv::Point3f> points;
+	std::vector<cv::Point3f> markerPoints;
 	{
-		points.push_back(cv::Point3f(0, 0, 0));
-		points.push_back(cv::Point3f(100, 0, 0));
-		points.push_back(cv::Point3f(100, 100, 0));
-		points.push_back(cv::Point3f(0, 100, 0));
+		markerPoints.push_back(cv::Point3f(0, 0, 0));
+		markerPoints.push_back(cv::Point3f(100, 0, 0));
+		markerPoints.push_back(cv::Point3f(100, 100, 0));
+		markerPoints.push_back(cv::Point3f(0, 100, 0));
+	}
+
+	std::vector<cv::Point3f> boardPoints;
+	{
+		boardPoints.push_back(cv::Point3f(0, 0, 0));
+		boardPoints.push_back(cv::Point3f(500, 0, 0));
+		boardPoints.push_back(cv::Point3f(500, 500, 0));
+		boardPoints.push_back(cv::Point3f(0, 500, 0));
 	}
 
 	std::vector<QWX_CalcPatternT::Pattern> cptPatterns;
 	std::vector<cv::Mat> trace;
 	std::vector<float> shake;
 
-	float squareSize = 20.0;
-	std::vector<cv::Point3f> objectCorners;
-	for (size_t row = 0; row < 9; row++)
-	{
-		for (size_t col = 0; col < 11; col++)
-		{
-			objectCorners.push_back(cv::Point3f(col*squareSize, row*squareSize, 0.0));
-		}
-	}
+	//float squareSize = 20.0;
+	//std::vector<cv::Point3f> objectCorners;
+	//for (size_t row = 0; row < 9; row++)
+	//{
+	//	for (size_t col = 0; col < 11; col++)
+	//	{
+	//		objectCorners.push_back(cv::Point3f(col*squareSize, row*squareSize, 0.0));
+	//	}
+	//}
 	cv::Mat rVec, tVec;
 
 	std::map<int, int> mapCode2Type;
-	mapCode2Type.insert(std::pair<int, int>(-64, 1));
-	mapCode2Type.insert(std::pair<int, int>(1, 2));
+	mapCode2Type.insert(std::pair<int, int>(-64, 2));
+	mapCode2Type.insert(std::pair<int, int>(1, 1));
 	mapCode2Type.insert(std::pair<int, int>(-47, 3));
 	mapCode2Type.insert(std::pair<int, int>(-67, 4));
 	mapCode2Type.insert(std::pair<int, int>(-63, 5));
@@ -86,44 +99,18 @@ int main()
 	mapCode2Type.insert(std::pair<int, int>(0, 7));
 
 
-	std::vector<QWX_CalcPatternT::camParam> camParams = camParams_origin;
-	/*{
-
-		for (size_t imgIdx = 0; imgIdx < Images.size(); imgIdx++)
-		{
-			std::vector<cv::Point2f> corners;
-			if (!cv::findChessboardCorners(Images[imgIdx], cv::Size(11, 9), corners))
-				continue;
-
-			camParams = camParams_origin;
-
-			cv::solvePnP(objectCorners, corners, camParams[imgIdx].camK, camParams[imgIdx].dist, rVec, tVec);
-			cv::Mat T_b2c2 = cv::Mat::eye(4, 4, CV_64FC1);
-
-			cv::Rodrigues(rVec, T_b2c2(cv::Rect(0, 0, 3, 3)));
-			tVec.copyTo(T_b2c2(cv::Rect(3, 0, 1, 3)));
-
-			T_b2c2.convertTo(T_b2c2, CV_32FC1);
-
-			cv::Mat T_c22c1 = T_b2c1 * T_b2c2.inv();
-			T_b2c1 = T_b2c2;
-			for (size_t i = 0; i < camParams.size(); i++)
-			{
-				camParams[i].T_c2w = camParams[i].T_c2w*T_c22c1;
-			}
-			break;
-		}
-	}*/
 
 	std::vector<std::vector<cv::Point3f>> pointsInBoards;
-	for (size_t i = 0; i < 1; i++)
+	for (size_t i = 0; i < boardNum; i++)
 	{
-		pointsInBoards.push_back(points);
+		pointsInBoards.push_back(boardPoints);
 	}
 	std::vector<std::vector<cv::Point3f>> pointsInMarkers;
-	for (size_t i = 0; i < 2; i++)
+	std::vector<cv::Point3f> marksPt;
+	for (size_t i = 0; i < markerNum; i++)
 	{
-		pointsInMarkers.push_back(points);
+		pointsInMarkers.push_back(markerPoints);
+		marksPt.push_back(cv::Point3f(0.0, 0.0, 0.0));
 	}
 
 	QWX_MultiCoTarRecog mctr;
@@ -136,8 +123,8 @@ int main()
 	//cptPatterns = cpt.getPatterns();
 
 	QWX_calcTraceShake cts;
+	cts.setMarkPt(marksPt);
 	/*cts.setOringin_T_g2ms(origin_T_g2ms);
-	cts.setMarkPt(cv::Point2f(5.0, 5.0));
 	cts.compute(cptPatterns);
 	trace = cts.getTrace();
 	shake = cts.getShake();*/
@@ -151,7 +138,7 @@ int main()
 	me.setTw2gOrigin(T_w2g_origin);
 	me.setPointsInBoards(pointsInBoards);
 	me.setPointsInMarkers(pointsInMarkers);
-	me.setBoardNum(0);
+	me.setBoardNum(boardNum);
 	me.init();
 	me.initTg2mnOrigin(Images[0]);
 	for (size_t i = 0; i < Images.size(); i++)
@@ -159,10 +146,6 @@ int main()
 		me.addImages(Images[i], times[i]);
 	}
 	me.process();
-
-
-
-
 
 	return 0;
 }

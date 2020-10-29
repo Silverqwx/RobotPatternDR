@@ -17,41 +17,47 @@ bool QWX_calcTraceShake::setOringin_T_g2ms(std::vector<cv::Mat> _origin_T_g2ms)
 	return true;
 }
 
-bool QWX_calcTraceShake::setMarkPt(cv::Point2f _markPt)
+bool QWX_calcTraceShake::setMarkPt(std::vector<cv::Point3f> _markersPt)
 {
-	markPt = _markPt;
+	markersPt = _markersPt;
 
 	return true;
 }
 
-bool QWX_calcTraceShake::compute(const std::vector<QWX_CalcPatternT::Pattern>& _patterns)
+
+bool QWX_calcTraceShake::compute(const std::vector<cv::Mat> &_Ts_mn2g)
 {
 	trace.clear();
 	shake.clear();
-	for (size_t i = 0; i < _patterns.size(); i++)
-		trace.push_back(cv::Mat());
-	shake.resize(_patterns.size());
+	//for (size_t i = 0; i < _Ts_mn2g.size(); i++)
+	//	trace.push_back(cv::Mat());
+	trace.resize(_Ts_mn2g.size());
+	shake.resize(_Ts_mn2g.size());
 
 	cv::Mat v = cv::Mat::zeros(4, 1, CV_32FC1);
 	v.at<float>(2, 0) = 1;
 	v.at<float>(3, 0) = 1;
 
-	for (size_t patternIdx = 0; patternIdx < _patterns.size(); patternIdx++)
+	for (size_t markerIdx = 0; markerIdx < _Ts_mn2g.size(); markerIdx++)
 	{
-		const QWX_CalcPatternT::Pattern &p = _patterns[patternIdx];
+		const cv::Mat &T = _Ts_mn2g[markerIdx];
 
-		if (!p.flag_valid)
-			continue;
+		//if (!p.flag_valid)
+		//	continue;
 
 		cv::Mat markPt4d = cv::Mat::zeros(4, 1, CV_32FC1);
-		markPt4d.at<float>(0, 0) = markPt.x;
-		markPt4d.at<float>(1, 0) = markPt.y;
+		markPt4d.at<float>(0, 0) = markersPt[markerIdx].x;
+		markPt4d.at<float>(1, 0) = markersPt[markerIdx].y;
+		markPt4d.at<float>(2, 0) = markersPt[markerIdx].z;
 		markPt4d.at<float>(3, 0) = 1.0;
 
-		trace[patternIdx] = p.T_*markPt4d;
+		cv::Mat traceMat = T * markPt4d;
+		trace[markerIdx].x = traceMat.at<float>(0, 0);
+		trace[markerIdx].y = traceMat.at<float>(1, 0);
+		trace[markerIdx].z = traceMat.at<float>(2, 0);
 
-		cv::Mat T_g2m = p.T_.inv();
-		const cv::Mat &origin_T_g2m = origin_T_g2ms[patternIdx];
+		cv::Mat T_g2m = T.inv();
+		const cv::Mat &origin_T_g2m = origin_T_g2ms[markerIdx];
 
 		cv::Mat v14d = T_g2m * v;
 		cv::Mat v24d = origin_T_g2m * v;
@@ -67,13 +73,13 @@ bool QWX_calcTraceShake::compute(const std::vector<QWX_CalcPatternT::Pattern>& _
 		float costheta = innerV / (n1*n2);
 		float theta = acosf(costheta);
 
-		shake[patternIdx] = theta;
+		shake[markerIdx] = theta;
 	}
 
 	return true;
 }
 
-std::vector<cv::Mat> QWX_calcTraceShake::getTrace() const
+std::vector<cv::Point3f> QWX_calcTraceShake::getTrace() const
 {
 	return trace;
 }

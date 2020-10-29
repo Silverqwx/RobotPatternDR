@@ -5,21 +5,21 @@
 
 class QWX_calcTraceShake
 {
-	std::vector<cv::Mat> trace;
+	std::vector<cv::Point3f> trace;
 	std::vector<float> shake;
 	std::vector<cv::Mat> origin_T_g2ms;
-	cv::Point2f markPt;
+	std::vector<cv::Point3f> markersPt;
 
 public:
 	QWX_calcTraceShake();
 	~QWX_calcTraceShake();
 
 	bool setOringin_T_g2ms(std::vector<cv::Mat> _origin_T_g2ms);
-	bool setMarkPt(cv::Point2f _markPt);
+	bool setMarkPt(std::vector<cv::Point3f> _markersPt);
 
-	bool compute(const std::vector<QWX_CalcPatternT::Pattern> &_patterns);
+	bool compute(const std::vector<cv::Mat> &_Ts_mn2g);
 
-	std::vector<cv::Mat> getTrace() const;
+	std::vector<cv::Point3f> getTrace() const;
 	std::vector<float> getShake() const;
 
 private:

@@ -164,7 +164,7 @@ int QWX_MultiCoTarRecog::GetInfor(cv::Mat Scr)
 
 
 			/////////**********************************************************************************/
-			if (!GetLines(CenterPoint, CrossLine))
+			if (!GetLines(CenterPoint, CrossLine, 500))
 				goto FALSEPOINT;
 
 
